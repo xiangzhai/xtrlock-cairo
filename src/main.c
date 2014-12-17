@@ -18,7 +18,8 @@
 
 #define _(x) gettext(x)
 #define TEXT_SIZE 137
-#define TEXT_HEIGHT 12
+#define M_PI 3.1415926
+#define TEXT_HEIGHT 16
 #define TEXT_MARGIN 6
 #define PWD_CHAR "*"
 
@@ -27,20 +28,28 @@ static Display *display = NULL;
 static int window_width = 0;
 static int window_height = 0;
 static Window window;
-static cairo_surface_t *cs = NULL;
-static cairo_t *cr = NULL;
+static cairo_surface_t *x11_cs = NULL;
+static cairo_surface_t *image_cs = NULL;
+static cairo_surface_t *text_cs = NULL;
+static cairo_t *x11_cr = NULL;
+static cairo_t *text_cr = NULL;
 static char text[TEXT_SIZE] = {'\0'};
 static int quit = 0;
 
 static void cleanup();
 static int check_password(const char *s);
 static void clear_text();
-static void draw(char *text);
+static void set_font(cairo_t *cr);
+static void draw_image();
+static void draw_text(char *text);
 
 static void cleanup() 
 {
-    if (cr) cairo_destroy(cr); cr = NULL;                                          
-    if (cs) cairo_surface_destroy(cs); cs = NULL;                                  
+    if (x11_cr) cairo_destroy(x11_cr); x11_cr = NULL;
+    if (text_cr) cairo_destroy(text_cr); text_cr = NULL;
+    if (image_cs) cairo_surface_destroy(image_cs); image_cs = NULL;
+    if (text_cs) cairo_surface_destroy(text_cs); text_cs = NULL;
+    if (x11_cs) cairo_surface_destroy(x11_cs); x11_cs = NULL;
     if (display) XCloseDisplay(display); display = NULL;
 }
 
@@ -55,32 +64,46 @@ static void clear_text()
     snprintf(text, TEXT_SIZE, _("Password "));
 }
 
-static void draw(char *text) 
+static void set_font(cairo_t *cr) 
 {
-    int x, y = 0;
+    cairo_select_font_face(cr, "Serif",                                        
+                           CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_BOLD);       
+    cairo_set_font_size(cr, TEXT_HEIGHT);
+}
+
+static void draw_image() 
+{
+    int w, h;
     
-    if (!cr) 
+    if (!x11_cr) 
         return;
 
-    cairo_push_group(cr);
+    w = cairo_image_surface_get_width(image_cs);
+    h = cairo_image_surface_get_height(image_cs);
 
-    cairo_set_source_rgb(cr, 0, 0, 0);                                             
-    cairo_paint(cr);
+    cairo_arc(x11_cr, 
+              window_width / 2, (window_height - h) / 2, w / 2, 0, 2 * M_PI);
+    cairo_clip(x11_cr);
+    cairo_set_source_surface(x11_cr, image_cs, 
+                             (window_width - w) / 2, window_height / 2 - h);
+    cairo_paint(x11_cr);
+}
 
-    /* text */
-    cairo_set_source_rgb(cr, 1, 1, 0);
-    x = window_width / 2;
-    y = (window_height - TEXT_HEIGHT) / 2;
-    cairo_move_to(cr, x, y);
-    cairo_show_text(cr, pw->pw_name);
+static void draw_text(char *text) 
+{
+    int x = 0, y = TEXT_HEIGHT;
+
+    if (!text_cr) 
+        return;
+
+    cairo_set_source_rgb(text_cr, 0, 0, 0);
+    cairo_paint(text_cr);
+
+    cairo_set_source_rgb(text_cr, 1, 1, 0);
+    cairo_move_to(text_cr, x, y);
     y += TEXT_HEIGHT + TEXT_MARGIN;
-    cairo_move_to(cr, x, y); 
-    cairo_show_text(cr, text);                                     
-    
-    cairo_pop_group_to_source(cr);                                 
-    cairo_paint(cr);
-
-    cairo_surface_flush(cs);
+    cairo_move_to(text_cr, x, y); 
+    cairo_show_text(text_cr, text);                                     
 }
 
 int main(int argc, char *argv[]) 
@@ -155,36 +178,54 @@ int main(int argc, char *argv[])
     XSelectInput(display, window, KeyPressMask | KeyReleaseMask);
     XMapWindow(display, window);
 
-    /* cairo surface */
-    cs = cairo_xlib_surface_create(display, window, 
-                                   DefaultVisual(display, screen), 
-                                   0, 0);
-    if (!cs) {
-        printf("ERROR: fail to create surface\n");
+    /* cairo root surface */
+    x11_cs = cairo_xlib_surface_create(display, window, 
+                                       DefaultVisual(display, screen), 
+                                       0, 0);
+    if (!x11_cs) {
+        printf("ERROR: fail to create x11 surface\n");
         cleanup();
         return 1;
     }
-    cairo_xlib_surface_set_size(cs, DisplayWidth(display, screen), 
-                                DisplayHeight(display, screen));
+    cairo_xlib_surface_set_size(x11_cs, window_width, window_height);
 
-    /* cairo context */
-    cr = cairo_create(cs);
-    if (!cr) {
-        printf("ERROR: fail to create context\n");
+    /* cairo x11 context */
+    x11_cr = cairo_create(x11_cs);
+    if (!x11_cr) {
+        printf("ERROR: fail to create x11 context\n");
         cleanup();
         return 1;
     }
 
-    /* font */
-    cairo_set_source_rgb(cr, 1, 1, 0);
-    cairo_select_font_face(cr, "Serif", 
-                           CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_BOLD);
-    cairo_set_font_size(cr, TEXT_HEIGHT); 
+    /* cairo image */
+    image_cs = cairo_image_surface_create_from_png(DATADIR "/doge.png");
+    if (!image_cs) {
+        printf("ERROR: fail to create image surface\n");
+        cleanup();
+        return 1;
+    }
+
+    /* cairo text surface */
+    text_cs = cairo_surface_create_for_rectangle(x11_cs, 
+            window_width / 2, window_height / 2, 
+            window_width / 2 - TEXT_MARGIN, TEXT_HEIGHT * 3);
+
+    /* cairo text context */
+    text_cr = cairo_create(text_cs);
+    if (!text_cr) {
+        printf("ERROR: fail to create text context\n");
+        cleanup();
+        return 1;
+    }
+
+    /* cairo text font */
+    set_font(text_cr);
 
     /* grab keyboard */
     XGrabKeyboard(display, window, False, GrabModeAsync, 
                   GrabModeAsync, CurrentTime);
 
+    draw_image();
     clear_text();
     while (quit == 0) {
         XNextEvent(display, &ev);
@@ -230,7 +271,7 @@ int main(int argc, char *argv[])
         default:
             break;
         }
-        draw(text);
+        draw_text(text);
         usleep(100);
     }
 

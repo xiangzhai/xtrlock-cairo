@@ -3,7 +3,7 @@
 bin_PROGRAMS = xtrlock-cairo
 
 xtrlock_cairo_SOURCES = main.c
-xtrlock_cairo_CFLAGS = @XTRLOCK_CAIRO_CFLAGS@
+xtrlock_cairo_CFLAGS = @XTRLOCK_CAIRO_CFLAGS@ -DDATADIR=\""$(datadir)/xtrlock-cairo"\"
 xtrlock_cairo_LDADD = @XTRLOCK_CAIRO_LIBS@ @CRYPT_LIBS@
 
 install-exec-hook:
