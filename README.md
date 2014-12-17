@@ -1,7 +1,9 @@
 xtrlock-cairo
 -------------
 
-Cairo frontend for X11 screen lock.
+Cairo frontend for X11 screen lock. It is based on xtrlock 
+https://packages.debian.org/sid/xtrlock just cleanup source code, and use cairo 
+to draw ;)
 
 
 ## Build && Install
