@@ -167,7 +167,7 @@ int main(int argc, char *argv[])
     }
 
     /* display */
-    display= XOpenDisplay(NULL);
+    display = XOpenDisplay(NULL);
     if (!display) {
         printf("ERROR: fail to open display\n");
         return 1;

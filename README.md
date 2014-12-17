@@ -24,3 +24,10 @@ xtrlock-cairo
 ![ScreenShot](https://raw.github.com/xiangzhai/xtrlock-cairo/master/doc/xtrlock-cairo.jpg)
 
 then just input your password for current login user.
+
+
+## dontkillme
+
+
+slock http://tools.suckless.org/slock/ there is dontkillme function, but how to 
+implement?
