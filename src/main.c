@@ -117,7 +117,8 @@ int main(int argc, char *argv[])
 {
     struct spwd *sp = NULL;
     XSetWindowAttributes attrib;
-    int screen;
+    Window root;
+    int screen = 0;
     XEvent ev;
     KeySym ks;
     int text_width;
@@ -174,7 +175,6 @@ int main(int argc, char *argv[])
 
     /* window */
     attrib.override_redirect = True;
-    screen = DefaultScreen(display);                                               
     attrib.background_pixel = BlackPixel(display, screen);                         
     window_width = DisplayWidth(display, screen);
     window_height = DisplayHeight(display, screen);
@@ -182,14 +182,19 @@ int main(int argc, char *argv[])
     printf("DEBUG: %s, line %d %d x %d\n", 
            __func__, __LINE__, window_width, window_height);
 #endif
-    window= XCreateWindow(display, DefaultRootWindow(display),
+    root = RootWindow(display, screen);
+    window= XCreateWindow(display, root,
                           0, 0, window_width, window_height,
                           0, DefaultDepth(display, screen), CopyFromParent,
                           DefaultVisual(display, screen),
                           CWOverrideRedirect | CWBackPixel, &attrib);
     XStoreName(display, window, "xtrlock-cairo");
-    XSelectInput(display, window, KeyPressMask | KeyReleaseMask);
+    /* TODO: hide google chrome notify, thanks to slock ;) */
+    XSelectInput(display, root, SubstructureNotifyMask);
     XMapWindow(display, window);
+
+    /* grab keyboard */                                                            
+    XGrabKeyboard(display, root, True, GrabModeAsync, GrabModeAsync, CurrentTime);
 
     /* cairo x11 surface */
     x11_cs = cairo_xlib_surface_create(display, window, 
@@ -235,10 +240,7 @@ int main(int argc, char *argv[])
     /* cairo text font */
     set_font(text_cr);
 
-    /* grab keyboard */
-    XGrabKeyboard(display, window, False, GrabModeAsync, 
-                  GrabModeAsync, CurrentTime);
-
+    /* x11 event loop */
     draw_image();
     clear_text();
     while (quit == 0) {
@@ -283,6 +285,8 @@ int main(int argc, char *argv[])
                 break;
             }
         default:
+            /* TODO: hide google chrome notify, thanks to slock ;) */
+            XRaiseWindow(display, window);
             break;
         }
         draw_text(text);
