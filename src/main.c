@@ -27,7 +27,7 @@ static struct passwd *pw = NULL;
 static Display *display = NULL;
 static int window_width = 0;
 static int window_height = 0;
-static Window window;
+static Window window = None;
 static cairo_surface_t *x11_cs = NULL;
 static cairo_surface_t *image_cs = NULL;
 static cairo_surface_t *text_cs = NULL;
@@ -50,7 +50,11 @@ static void cleanup()
     if (image_cs) cairo_surface_destroy(image_cs); image_cs = NULL;
     if (text_cs) cairo_surface_destroy(text_cs); text_cs = NULL;
     if (x11_cs) cairo_surface_destroy(x11_cs); x11_cs = NULL;
-    if (display) XCloseDisplay(display); display = NULL;
+    if (display) {
+        XDestroyWindow(display, window);
+        XCloseDisplay(display); 
+        display = NULL;
+    }
 }
 
 static int check_password(const char *s) 
@@ -123,7 +127,7 @@ int main(int argc, char *argv[])
     setlocale(LC_ALL, "");                                                       
     bindtextdomain(GETTEXT_PACKAGE, XTRLOCK_CAIRO_LOCALEDIR);
     textdomain(GETTEXT_PACKAGE);
-#if MSS_DEBUG
+#if XTRLOCK_CAIRO_DEBUG
     printf("DEBUG: %s, line %d %s %s\n", __func__, __LINE__, 
            GETTEXT_PACKAGE, XTRLOCK_CAIRO_LOCALEDIR);
 #endif
@@ -133,14 +137,14 @@ int main(int argc, char *argv[])
         printf("ERROR: password entry for uid not found\n"); 
         return 1; 
     }                
-#if MSS_DEBUG
+#if XTRLOCK_CAIRO_DEBUG
     printf("DEBUG: %s, line %d current login user %s\n", 
            __func__, __LINE__, pw->pw_name);
 #endif
     sp = getspnam(pw->pw_name);                                                      
     if (sp) {                                                                        
         pw->pw_passwd = sp->sp_pwdp;
-#if MSS_DEBUG
+#if XTRLOCK_CAIRO_DEBUG
         printf("DEBUG: %s, line %d crypt pwd %s\n", 
                __func__, __LINE__, pw->pw_passwd);
 #endif
@@ -174,11 +178,16 @@ int main(int argc, char *argv[])
     attrib.background_pixel = BlackPixel(display, screen);                         
     window_width = DisplayWidth(display, screen);
     window_height = DisplayHeight(display, screen);
+#if XTRLOCK_CAIRO_DEBUG
+    printf("DEBUG: %s, line %d %d x %d\n", 
+           __func__, __LINE__, window_width, window_height);
+#endif
     window= XCreateWindow(display, DefaultRootWindow(display),
                           0, 0, window_width, window_height,
                           0, DefaultDepth(display, screen), CopyFromParent,
                           DefaultVisual(display, screen),
                           CWOverrideRedirect | CWBackPixel, &attrib);
+    XStoreName(display, window, "xtrlock-cairo");
     XSelectInput(display, window, KeyPressMask | KeyReleaseMask);
     XMapWindow(display, window);
 
