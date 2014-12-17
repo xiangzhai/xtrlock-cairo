@@ -21,4 +21,6 @@ sudo make install
 xtrlock-cairo
 ```
 
+![ScreenShot](https://raw.github.com/xiangzhai/xtrlock-cairo/master/doc/xtrlock-cairo.jpg)
+
 then just input your password for current login user.
