@@ -39,7 +39,7 @@ static int quit = 0;
 static void cleanup();
 static int check_password(const char *s);
 static void clear_text();
-static void set_font(cairo_t *cr);
+static double set_font(cairo_t *cr);
 static void draw_image();
 static void draw_text(char *text);
 
@@ -64,11 +64,14 @@ static void clear_text()
     snprintf(text, TEXT_SIZE, _("Password "));
 }
 
-static void set_font(cairo_t *cr) 
+static double set_font(cairo_t *cr) 
 {
+    cairo_text_extents_t extents;
     cairo_select_font_face(cr, "Serif",                                        
                            CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_BOLD);       
     cairo_set_font_size(cr, TEXT_HEIGHT);
+    cairo_text_extents(cr, _("Password "), &extents);
+    return extents.width;
 }
 
 static void draw_image() 
@@ -113,6 +116,7 @@ int main(int argc, char *argv[])
     int screen;
     XEvent ev;
     KeySym ks;
+    int text_width;
     char cbuf[10] = {'\0'}, rbuf[128] = {'\0'};
     int clen, rlen = 0;
 
@@ -178,7 +182,7 @@ int main(int argc, char *argv[])
     XSelectInput(display, window, KeyPressMask | KeyReleaseMask);
     XMapWindow(display, window);
 
-    /* cairo root surface */
+    /* cairo x11 surface */
     x11_cs = cairo_xlib_surface_create(display, window, 
                                        DefaultVisual(display, screen), 
                                        0, 0);
@@ -206,8 +210,9 @@ int main(int argc, char *argv[])
     }
 
     /* cairo text surface */
+    text_width = set_font(x11_cr);
     text_cs = cairo_surface_create_for_rectangle(x11_cs, 
-            window_width / 2, window_height / 2, 
+            (window_width - text_width) / 2, window_height / 2, 
             window_width / 2 - TEXT_MARGIN, TEXT_HEIGHT * 3);
 
     /* cairo text context */
