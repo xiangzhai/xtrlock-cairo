@@ -1,0 +1,9 @@
+*.o
+*.a
+*.in
+*.gmo
+*.deps
+*.cache
+*.m4
+config*
+Makefile
