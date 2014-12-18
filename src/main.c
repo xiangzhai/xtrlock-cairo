@@ -8,7 +8,6 @@
 #include <config.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <pwd.h>
 #include <shadow.h>
 #include <string.h>
@@ -17,10 +16,8 @@
 #include <locale.h>
 
 #define _(x) gettext(x)
-#define TEXT_SIZE 137
 #define M_PI 3.1415926
 #define TEXT_HEIGHT 16
-#define TEXT_MARGIN 6
 #define PWD_CHAR "*"
 
 static struct passwd *pw = NULL;
@@ -33,7 +30,7 @@ static cairo_surface_t *image_cs = NULL;
 static cairo_surface_t *text_cs = NULL;
 static cairo_t *x11_cr = NULL;
 static cairo_t *text_cr = NULL;
-static char text[TEXT_SIZE] = {'\0'};
+static char text[137] = {'\0'};
 static int quit = 0;
 
 static void cleanup();
@@ -64,8 +61,8 @@ static int check_password(const char *s)
 
 static void clear_text() 
 {
-    memset(text, 0, TEXT_SIZE);
-    snprintf(text, TEXT_SIZE, _("Password "));
+    memset(text, 0, sizeof(text));
+    snprintf(text, sizeof(text), _("Password "));
 }
 
 static double set_font(cairo_t *cr) 
@@ -98,7 +95,7 @@ static void draw_image()
 
 static void draw_text(char *text) 
 {
-    int x = 0, y = TEXT_HEIGHT;
+    int x = 0, y = TEXT_HEIGHT * 2;
 
     if (!text_cr) 
         return;
@@ -108,7 +105,6 @@ static void draw_text(char *text)
 
     cairo_set_source_rgb(text_cr, 1, 1, 0);
     cairo_move_to(text_cr, x, y);
-    y += TEXT_HEIGHT + TEXT_MARGIN;
     cairo_move_to(text_cr, x, y); 
     cairo_show_text(text_cr, text);                                     
 }
@@ -227,7 +223,7 @@ int main(int argc, char *argv[])
     text_width = set_font(x11_cr);
     text_cs = cairo_surface_create_for_rectangle(x11_cs, 
             (window_width - text_width) / 2, window_height / 2, 
-            window_width / 2 - TEXT_MARGIN, TEXT_HEIGHT * 3);
+            window_width / 2 - TEXT_HEIGHT, TEXT_HEIGHT * 3);
 
     /* cairo text context */
     text_cr = cairo_create(text_cs);
