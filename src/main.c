@@ -38,7 +38,7 @@ static int check_password(const char *s);
 static void clear_text();
 static double set_font(cairo_t *cr);
 static void draw_image();
-static void draw_text(char *text);
+static void draw_text();
 
 static void cleanup() 
 {
@@ -93,7 +93,7 @@ static void draw_image()
     cairo_paint(x11_cr);
 }
 
-static void draw_text(char *text) 
+static void draw_text() 
 {
     int x = 0, y = TEXT_HEIGHT * 2;
 
@@ -105,7 +105,6 @@ static void draw_text(char *text)
 
     cairo_set_source_rgb(text_cr, 1, 1, 0);
     cairo_move_to(text_cr, x, y);
-    cairo_move_to(text_cr, x, y); 
     cairo_show_text(text_cr, text);                                     
 }
 
@@ -171,7 +170,8 @@ int main(int argc, char *argv[])
 
     /* window */
     attrib.override_redirect = True;
-    attrib.background_pixel = BlackPixel(display, screen);                         
+    attrib.background_pixel = BlackPixel(display, screen);
+    attrib.event_mask = ExposureMask;
     window_width = DisplayWidth(display, screen);
     window_height = DisplayHeight(display, screen);
 #if XTRLOCK_CAIRO_DEBUG
@@ -183,7 +183,8 @@ int main(int argc, char *argv[])
                           0, 0, window_width, window_height,
                           0, DefaultDepth(display, screen), CopyFromParent,
                           DefaultVisual(display, screen),
-                          CWOverrideRedirect | CWBackPixel, &attrib);
+                          CWOverrideRedirect | CWBackPixel | CWEventMask, 
+                          &attrib);
     XStoreName(display, window, "xtrlock-cairo");
     /* TODO: hide google chrome notify, thanks to slock ;) */
     XSelectInput(display, root, SubstructureNotifyMask);
@@ -237,11 +238,15 @@ int main(int argc, char *argv[])
     set_font(text_cr);
 
     /* x11 event loop */
-    draw_image();
     clear_text();
     while (quit == 0) {
         XNextEvent(display, &ev);
         switch (ev.type) {
+        case Expose:
+            /* TODO: VTSwitch */
+            draw_image();
+            draw_text();
+            break;
         case KeyPress:
             clen = XLookupString(&ev.xkey, cbuf, 9, &ks, 0);
             switch (ks) {
@@ -277,15 +282,17 @@ int main(int argc, char *argv[])
                     rbuf[rlen] = cbuf[0];
                     strcat(text, PWD_CHAR);
                     rlen++;
-                } 
+                }
                 break;
             }
+        case KeyRelease:
+            draw_text();
+            break;
         default:
             /* TODO: hide google chrome notify, thanks to slock ;) */
             XRaiseWindow(display, window);
             break;
         }
-        draw_text(text);
         usleep(100);
     }
 
