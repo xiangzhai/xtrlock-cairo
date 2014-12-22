@@ -86,7 +86,8 @@ static void draw_image()
     h = cairo_image_surface_get_height(image_cs);
 
     cairo_arc(x11_cr, 
-              window_width / 2, (window_height - h) / 2, w / 2, 0, 2 * M_PI);
+              window_width / 2, (window_height - h) / 2, (w < h ? w : h) / 2, 
+              0, 2 * M_PI);
     cairo_clip(x11_cr);
     cairo_set_source_surface(x11_cr, image_cs, 
                              (window_width - w) / 2, window_height / 2 - h);
