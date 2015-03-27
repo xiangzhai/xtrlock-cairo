@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Leslie Zhai <xiang.zhai@i-soft.com.cn> */
+/* Copyright (C) 2014 - 2015 Leslie Zhai <xiang.zhai@i-soft.com.cn> */
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -31,7 +31,6 @@ static cairo_surface_t *text_cs = NULL;
 static cairo_t *x11_cr = NULL;
 static cairo_t *text_cr = NULL;
 static char text[137] = {'\0'};
-static int quit = 0;
 
 static void cleanup();
 static int check_password(const char *s);
@@ -42,11 +41,32 @@ static void draw_text();
 
 static void cleanup() 
 {
-    if (x11_cr) cairo_destroy(x11_cr); x11_cr = NULL;
-    if (text_cr) cairo_destroy(text_cr); text_cr = NULL;
-    if (image_cs) cairo_surface_destroy(image_cs); image_cs = NULL;
-    if (text_cs) cairo_surface_destroy(text_cs); text_cs = NULL;
-    if (x11_cs) cairo_surface_destroy(x11_cs); x11_cs = NULL;
+    /* TODO: perhaps some company will pay $ based on LOC ;-) */
+    if (x11_cr) {
+        cairo_destroy(x11_cr); 
+        x11_cr = NULL;
+    }
+
+    if (text_cr) {
+        cairo_destroy(text_cr); 
+        text_cr = NULL;
+    }
+    
+    if (image_cs) {
+        cairo_surface_destroy(image_cs); 
+        image_cs = NULL;
+    }
+
+    if (text_cs) {
+        cairo_surface_destroy(text_cs); 
+        text_cs = NULL;
+    }
+
+    if (x11_cs) {
+        cairo_surface_destroy(x11_cs); 
+        x11_cs = NULL;
+    }
+
     if (display) {
         XDestroyWindow(display, window);
         XCloseDisplay(display); 
@@ -68,10 +88,12 @@ static void clear_text()
 static double set_font(cairo_t *cr) 
 {
     cairo_text_extents_t extents;
+    
     cairo_select_font_face(cr, "Serif",                                        
                            CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_BOLD);       
     cairo_set_font_size(cr, TEXT_HEIGHT);
     cairo_text_extents(cr, _("Password "), &extents);
+    
     return extents.width;
 }
 
@@ -120,6 +142,7 @@ int main(int argc, char *argv[])
     int text_width;
     char cbuf[10] = {'\0'}, rbuf[128] = {'\0'};
     int clen, rlen = 0;
+    int quit = 1;
 
     setlocale(LC_ALL, "");                                                       
     bindtextdomain(GETTEXT_PACKAGE, XTRLOCK_CAIRO_LOCALEDIR);
@@ -180,19 +203,41 @@ int main(int argc, char *argv[])
            __func__, __LINE__, window_width, window_height);
 #endif
     root = RootWindow(display, screen);
-    window= XCreateWindow(display, root,
-                          0, 0, window_width, window_height,
-                          0, DefaultDepth(display, screen), CopyFromParent,
-                          DefaultVisual(display, screen),
-                          CWOverrideRedirect | CWBackPixel | CWEventMask, 
-                          &attrib);
+    window = XCreateWindow(display, root,
+                           0, 0, window_width, window_height,
+                           0, DefaultDepth(display, screen), CopyFromParent,
+                           DefaultVisual(display, screen),
+                           CWOverrideRedirect | CWBackPixel | CWEventMask, 
+                           &attrib);
     XStoreName(display, window, "xtrlock-cairo");
     /* TODO: hide google chrome notify, thanks to slock ;) */
     XSelectInput(display, root, SubstructureNotifyMask);
-    XMapWindow(display, window);
 
-    /* grab keyboard */                                                            
-    XGrabKeyboard(display, root, True, GrabModeAsync, GrabModeAsync, CurrentTime);
+    /* TODO: grab keyboard 
+     *
+     * perhaps some global hotkey XGrabKey some Keysym such Ctrl+l
+     * so just try 1K times ;-)
+     */
+    for (int i = 1024; i; i--) {
+        if (XGrabKeyboard(display, root, True, GrabModeAsync, GrabModeAsync, 
+                          CurrentTime) == GrabSuccess) {
+            quit = 0;
+            break;
+        }
+
+        usleep(1000);
+    }
+
+    /* TODO: just quit ;-)
+     *
+     * if XGrabKeyboard failed due to some widgets XGrabPointer 
+     * such as GtkMenu
+     */
+    if (quit) {
+        cleanup();
+        return 1;
+    }
+    XMapWindow(display, window);
 
     /* cairo x11 surface */
     x11_cs = cairo_xlib_surface_create(display, window, 
@@ -244,7 +289,7 @@ int main(int argc, char *argv[])
         XNextEvent(display, &ev);
         switch (ev.type) {
         case Expose:
-            /* TODO: VTSwitch */
+            /* TODO: HOWTO forbit VTSwitch??? */
             draw_image();
             draw_text();
             break;
