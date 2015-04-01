@@ -147,10 +147,6 @@ int main(int argc, char *argv[])
     setlocale(LC_ALL, "");                                                       
     bindtextdomain(GETTEXT_PACKAGE, XTRLOCK_CAIRO_LOCALEDIR);
     textdomain(GETTEXT_PACKAGE);
-#if XTRLOCK_CAIRO_DEBUG
-    printf("DEBUG: %s, line %d %s %s\n", __func__, __LINE__, 
-           GETTEXT_PACKAGE, XTRLOCK_CAIRO_LOCALEDIR);
-#endif
 
     pw = getpwuid(getuid());                                                
     if (!pw) { 
@@ -237,6 +233,7 @@ int main(int argc, char *argv[])
         cleanup();
         return 1;
     }
+
     XMapWindow(display, window);
 
     /* cairo x11 surface */
