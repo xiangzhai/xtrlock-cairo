@@ -7,3 +7,17 @@
 *.m4
 config*
 Makefile
+compile
+depcomp
+install-sh
+libtool
+ltmain.sh
+missing
+POTFILES
+stamp-it
+src/test_cairo_xlib
+src/test_cairo_xlib_simple
+src/test_dummy
+src/test_notify_send
+src/xtrlock-cairo
+stamp-h1
