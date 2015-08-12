@@ -26,6 +26,15 @@ fi
 CRYPT_LIBS=-lcrypt
 AC_SUBST(CRYPT_LIBS)
 
+AC_ARG_ENABLE(debug,
+              [AS_HELP_STRING([--enable-debug=@<:@no/yes@:>@],
+                              [turn on debugging [default=no]])],,
+              [enable_debug=no])
+
+if test "x$enable_debug" = "xyes"; then
+  test "$cflags_set" = set || CFLAGS="$CFLAGS -g -DXTRLOCK_CAIRO_DEBUG"
+fi
+
 dnl ================================================================            
 dnl  Language Support                                                           
 dnl ================================================================            

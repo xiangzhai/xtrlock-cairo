@@ -9,7 +9,8 @@ to draw ;)
 ## Build && Install
 
 ```
-./autogen.sh --prefix=/usr
+./autogen.sh --prefix=/usr  \
+    --enable-debug=yes
 make
 sudo make install
 ```

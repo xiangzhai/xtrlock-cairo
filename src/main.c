@@ -148,11 +148,11 @@ int main(int argc, char *argv[])
     bindtextdomain(GETTEXT_PACKAGE, XTRLOCK_CAIRO_LOCALEDIR);
     textdomain(GETTEXT_PACKAGE);
 
-    pw = getpwuid(getuid());                                                
-    if (!pw) { 
-        printf("ERROR: password entry for uid not found\n"); 
-        return 1; 
-    }                
+    pw = getpwuid(getuid());
+    if (!pw) {
+        printf("ERROR: password entry for uid not found\n");
+        return 1;
+    }
 #if XTRLOCK_CAIRO_DEBUG
     printf("DEBUG: %s, line %d current login user %s\n", 
            __func__, __LINE__, pw->pw_name);
